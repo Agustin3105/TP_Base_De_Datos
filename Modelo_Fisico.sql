@@ -16,7 +16,6 @@ descripcion varchar(20) not null unique
 create table EfectoAdverso(
 codigo int primary key not null auto_increment,
 descripcion varchar(50) not null,
-fecha date,
 codigoGravedad int not null,
 
 constraint foreign key (codigoGravedad) references GravedadDeEfecto(codigo)
@@ -67,38 +66,47 @@ codigoFormaAdministracion int not null,
 
 constraint foreign key (codigoOrigen) references OrigenDeCompuesto(codigo),
 foreign key (codigoFormaAdministracion) references FormaDeAdministracion(codigo)
-)
+);
+
+create table CodigoTratamiento(
+codigo int primary key not null auto_increment,
+lugarDelCuerpo varchar(50),
+descripcion varchar(50) not null
+);
 
 create table Tratamiento(
-codigo int primary key not null auto_increment,
-fecha date not null,
-lugarDelCuerpo varchar(50) not null,
+codigoTratamiento int not null,
+identificador int not null,
+fechaHora datetime not null,
 efectoEsperado varchar(50),
 codigoCentroDeSalud int,
 cuilProfesional bigint not null,
 numeroPacienteProfesional bigint not null,
-cuilPersona bigint not null,
-numeroPacientePersona bigint not null,
 
 constraint foreign key (cuilProfesional, numeroPacienteProfesional) references Profesional(cuil, numeroPaciente),
-foreign key (cuilPersona, numeroPacientePersona) references Persona(cuil, numeroPaciente),
-foreign key (codigoCentroDeSalud) references CentroDeSalud(codigo)
+foreign key (codigoTratamiento) references CodigoTratamiento(codigo),
+foreign key (codigoCentroDeSalud) references CentroDeSalud(codigo),
+primary key Tratamiento_pk (codigoTratamiento, identificador)
 );
 
 create table PracticaQuirurgica(
-codigo int primary key not null,
+codigoTratamiento int not null,
+identificador int not null,
 fueExitosa bool,
 
-constraint foreign key (codigo) references Tratamiento(codigo)
+constraint foreign key (codigoTratamiento, identificador) references Tratamiento(codigoTratamiento, identificador),
+primary key PracticaQuirurgica_pk (codigoTratamiento, identificador)
 );
 
 create table PracticaDiagnostica(
-codigo int primary key not null,
+codigoTratamiento int not null,
+identificador int not null,
 diagnosticoPresuntivo varchar(50) not null,
 seConfirmo bool not null,
 codigoDiagnostico int, 
 
-constraint foreign key (codigoDiagnostico) references Diagnostico(codigo)
+constraint foreign key (codigoTratamiento, identificador) references Tratamiento(codigoTratamiento, identificador),
+primary key PracticaDiagnostica_pk (codigoTratamiento, identificador)
 );
 
 create table Persona(
@@ -132,13 +140,27 @@ fecha date,
 constraint Antecedente_Persona_pk primary key (cuil, numeroDePaciente, codigoDeAntecedente)
 );
 
-create table Tratamiento_EfectoAdverso(
-codigoTratamiento int not null,
-codigoEfectoAdverso int not null,
 
-constraint Tratamiento_EfectoAdverso_pk primary key (codigoTratamiento, codigoEfectoAdverso),
-foreign key (codigoTratamiento) references Tratamiento(codigo),
-foreign key (codigoEfectoAdverso) references EfectoAdverso(codigo)
+create table Persona_EfectoAdverso(
+codigoEfecto int not null,
+cuil bigint unsigned not null,
+numeroDePaciente bigint unsigned not null,
+fechaHora datetime not null,
+
+constraint primary key Persona_EfectoAdverso_pk (codigoEfecto, cuil, numeroDePaciente, fechaHora),
+foreign key (codigoEfecto) references EfectoAdverso(codigo),
+foreign key (cuil, numeroDePaciente) references Persona(cuil, numeroDePaciente)
+);
+
+create table Persona_Tratamiento(
+codigoTratamiento int not null,
+identificador int not null,
+cuil bigint unsigned not null,
+numeroDePaciente bigint unsigned not null,
+
+constraint primary key Persona_Tratamiento_pk (codigoTratamiento, identificador, cuil, numeroDePaciente),
+foreign key (codigoTratamiento, identificador) references Tratamiento(codigoTratamiento, identificador),
+foreign key (cuil, numeroDePaciente) references Persona(cuil, numeroDePaciente)
 );
 
 create table Contraindicacion(
@@ -153,10 +175,11 @@ foreign key (codigoAntecedente) references Antecedente(codigo)
 
 create table Tratamiento_CompuestoFarmacologico(
 codigoTratamiento int not null,
+identificador int not null,
 codigoCompuesto int not null,
 
-constraint Tratamiento_CompuestoFarmacologico_pk primary key (codigoTratamiento, codigoCompuesto),
-foreign key (codigoTratamiento) references Tratamiento(codigo),
+constraint Tratamiento_CompuestoFarmacologico_pk primary key (codigoTratamiento, identificador, codigoCompuesto),
+foreign key (codigoTratamiento, identificador) references Tratamiento(codigoTratamiento, identificador),
 foreign key (codigoCompuesto) references CompuestoFarmacologico(codigoDeBarras)
 );
 
@@ -178,4 +201,18 @@ constraint ComposicionCompuestoFarmacologico_pk primary key (codigoCompuesto, co
 foreign key (codigoCompuesto) references CompuestoFarmacologico(codigo),
 foreign key (codigoFarmaco) references Faramaco(codigo)
 );
+
+EfectoAdverso-Diagnostico-Antecedente-Especialidad-FormaDeAdministracion-
+OrigenDeCompuesto-Fármaco-CompuestoFarmacologico-Tratamiento-PracticaQuirurgica-PracticaDiagnostica-
+Persona-Profesional-Antecedente_Persona-Tratamiento_EfectoAdverso-Contraindicacion-Tratamiento_CompuestoFarmacologico-
+Profesional_Especialidad-ComposicionCompuestoFarmacologico
+
+insert into CentroDeSalud (nombre, direccion)
+values('Hospital Italiano','Perón 2987'), ('Hospital Argerich','Romero 173'), ('Hospital Garrahan','Martinez 987');
+
+insert into GravedadDeEfecto (descripcion)
+values ('Leve'), ('Moderado'), ('Grave'), ('Severo'), ('Muerto');
+
+
+
 
